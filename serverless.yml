@@ -1,0 +1,60 @@
+service: signeblock
+app: signeblock-api
+org: davidbc
+frameworkVersion: '2'
+
+custom:  
+  settings:
+    tableName: signeblock
+
+# Configuracion basica de AWS
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  region: eu-west-3
+  environment: ${self:custom.settings}
+  # Permisos de ejecución en la BD
+  iam:
+    role:
+      statements:
+       - Effect: "Allow"
+         Action:
+            - dynamodb:Scan
+            - dynamodb:PutItem
+         Resource:
+          - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.settings.tableName}"
+
+# Funciones lambdas
+functions:
+  getSigneblock:
+    description: Recupera todo lo que está almacenado en DynamoDB
+    handler: handler.getSigneblock
+    events:
+      - http:
+          path: /signeblock
+          method: GET
+  postSigneblock:
+    description: Elimina la información almacenado en DynamoDB
+    handler: handler.postSigneblock
+    events:
+      - http:
+          path: /signeblock
+          method: POST
+
+#Configuración de DinamoBD
+resources:
+  Resources:
+    SigneblockTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.settings.tableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
